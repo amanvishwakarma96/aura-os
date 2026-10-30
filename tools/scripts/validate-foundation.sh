@@ -7,7 +7,8 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 mapfile -t sources < <(find "$ROOT/platform/aura/framework/src" -type f -name '*.kt' | sort)
 test "${#sources[@]}" -gt 0
-kotlinc -Werror "${sources[@]}" "$ROOT/tests/framework/AuraFrameworkSmokeTest.kt" "$ROOT/tests/framework/AuraApprovalGrantStoreTest.kt" -d "$tmpdir/aura-framework.jar"
+kotlinc -Werror "${sources[@]}" "$ROOT/tests/framework/AuraFrameworkSmokeTest.kt" "$ROOT/tests/framework/AuraApprovalGrantStoreTest.kt" "$ROOT/tests/framework/AuraCanonicalArgumentsTest.kt" -d "$tmpdir/aura-framework.jar"
 kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.tests.AuraFrameworkSmokeTestKt
 kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.approval.AuraApprovalGrantStoreTestKt
+kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.approval.AuraCanonicalArgumentsTestKt
 echo "PASS: standalone framework Kotlin validation (not an AOSP/Soong build)"
