@@ -1,0 +1,21 @@
+name: Foundation validation
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  framework-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Kotlin installation
+        run: |
+          command -v kotlinc
+          command -v kotlin
+          kotlinc -version
+      - name: Validate framework
+        run: bash tools/scripts/validate-foundation.sh
