@@ -1,0 +1,7 @@
+java_library {
+    name: "aura-agent-service-core",
+    srcs: ["src/**/*.kt"],
+    static_libs: ["aura-framework-core"],
+    platform_apis: true,
+    kotlincflags: ["-Werror"],
+}

@@ -1,0 +1,13 @@
+.DS_Store
+.idea/
+.vscode/
+out/
+*.iml
+local.properties
+*.jks
+*.keystore
+*.pem
+*.key
+.env
+secrets/
+vendor/proprietary/
