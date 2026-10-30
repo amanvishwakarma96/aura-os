@@ -13,6 +13,6 @@ kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.approval.AuraApproval
 kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.approval.AuraCanonicalArgumentsTestKt
 kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.approval.AuraAuthorizationCoordinatorTestKt
 kotlin -classpath "$tmpdir/aura-framework.jar" com.aura.os.approval.AuraTrustedCallerTestKt
-kotlinc -Werror "\${sources[@]}" "$ROOT/platform/aura/android-adapter/src/com/aura/os/binder/AuraBinderIdentityResolver.kt" "$ROOT/tests/framework/AuraBinderIdentityResolverHostTest.kt" -d "$tmpdir/aura-binder-host.jar"
+kotlinc -Werror "${sources[@]}" "$ROOT/platform/aura/android-adapter/src/com/aura/os/binder/AuraBinderIdentityResolver.kt" "$ROOT/tests/framework/AuraBinderIdentityResolverHostTest.kt" -d "$tmpdir/aura-binder-host.jar"
 kotlin -classpath "$tmpdir/aura-binder-host.jar" com.aura.os.binder.AuraBinderIdentityResolverHostTestKt
 echo "PASS: standalone framework Kotlin validation (not an AOSP/Soong build)"
