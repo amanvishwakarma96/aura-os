@@ -14,6 +14,6 @@ kotlinc -Werror platform/aura/framework/src/com/aura/os/approval/AuraApprovalGra
 kotlin -classpath /tmp/aura-approval-test.jar com.aura.os.approval.AuraApprovalGrantStoreTestKt
 ```
 
-Locally observed: `PASS: one-shot, replay, caller/user/action/argument binding, expiry and invalidation`.
+The initial tests passed locally before this additional change. **The new capacity and concurrency tests have not yet been verified by a GitHub Actions run.**
 
-Remaining: limit number of outstanding tokens, formalize canonical encoding and signing identity, test concurrent consume, and integrate only behind a verified trusted Android approval coordinator.
+Outstanding tokens are now bounded (default 1024) and expired entries are pruned on issuance. A two-thread contention assertion was added; successful GitHub CI execution is still unverified. Remaining: canonical encoding and signing identity, stronger randomized concurrency stress testing, pressure/DoS review, and integration only behind a verified trusted Android approval coordinator.
