@@ -1,5 +1,9 @@
 package com.aura.os.approval
 
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
+
 fun main() {
     var now = 1000L
     val store = AuraApprovalGrantStore(monotonicMillis = { now })
@@ -26,5 +30,33 @@ fun main() {
     check(!store.consume(grant, original))
     check(runCatching { store.issueGrant(original, 0) }.isFailure)
     check(runCatching { store.issueGrant(original, 60_001) }.isFailure)
-    println("PASS: one-shot, replay, caller/user/action/argument binding, expiry and invalidation")
+    // Bounded storage and expired grant cleanup.
+    val bounded = AuraApprovalGrantStore(monotonicMillis = { now }, maxPending = 1)
+    val first = bounded.issueGrant(original, 10)
+    check(runCatching { bounded.issueGrant(original) }.isFailure)
+    now += 10
+    val replacement = bounded.issueGrant(original)
+    check(!bounded.consume(first, original))
+    check(bounded.consume(replacement, original))
+
+    // Two simultaneous consumers must never both succeed.
+    val concurrent = AuraApprovalGrantStore()
+    val shared = concurrent.issueGrant(original)
+    val start = CountDownLatch(1)
+    val complete = CountDownLatch(2)
+    val successes = AtomicInteger(0)
+    repeat(2) {
+        thread {
+            try {
+                start.await()
+                if (concurrent.consume(shared, original)) successes.incrementAndGet()
+            } finally {
+                complete.countDown()
+            }
+        }
+    }
+    start.countDown()
+    complete.await()
+    check(successes.get() == 1)
+    println("PASS: one-shot, replay, binding, expiry, bounded storage and concurrent consumption")
 }
