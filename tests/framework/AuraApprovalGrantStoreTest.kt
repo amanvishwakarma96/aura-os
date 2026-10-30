@@ -7,8 +7,8 @@ import kotlin.concurrent.thread
 fun main() {
     var now = 1000L
     val store = AuraApprovalGrantStore(monotonicMillis = { now })
-    fun binding(uid: Int = 1000, user: Int = 0, action: String = "system.open_settings", args: String = "{}") =
-        AuraApprovalGrantStore.Binding(uid, user, action, args.toByteArray(Charsets.UTF_8))
+    fun binding(uid: Int = 1000, user: Int = 0, action: String = "system.open_settings", args: String = "{}", identity: String = "sha256:trusted-signer", version: Long = 1L) =
+        AuraApprovalGrantStore.Binding(uid, user, action, args.toByteArray(Charsets.UTF_8), identity, version)
     val original = binding()
     var grant = store.issueGrant(original)
     check(store.consume(grant, original))
@@ -22,6 +22,12 @@ fun main() {
     check(!store.consume(grant, binding(action = "system.reset")))
     grant = store.issueGrant(original)
     check(!store.consume(grant, binding(args = "{\"x\":1}")))
+    grant = store.issueGrant(original)
+    check(!store.consume(grant, binding(identity = "sha256:other-signer")))
+    grant = store.issueGrant(original)
+    check(!store.consume(grant, binding(version = 2L)))
+    check(runCatching { store.issueGrant(binding(identity = "")) }.isFailure)
+    check(runCatching { store.issueGrant(binding(version = 0L)) }.isFailure)
     grant = store.issueGrant(original, lifetimeMillis = 100)
     now += 100
     check(!store.consume(grant, original))
