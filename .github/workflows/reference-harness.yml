@@ -1,0 +1,16 @@
+name: Reference harness static verification
+on:
+  push:
+    branches: [develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [develop, main]
+permissions:
+  contents: read
+jobs:
+  harness-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shell scripts and evidence contracts (no AOSP build)
+        run: bash tools/scripts/test-reference-harness.sh
