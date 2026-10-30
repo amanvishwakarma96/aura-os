@@ -17,3 +17,7 @@ kotlin -classpath /tmp/aura-approval-test.jar com.aura.os.approval.AuraApprovalG
 The initial tests passed locally before this additional change. **The new capacity and concurrency tests have not yet been verified by a GitHub Actions run.**
 
 Outstanding tokens are now bounded (default 1024) and expired entries are pruned on issuance. A two-thread contention assertion was added; successful GitHub CI execution is still unverified. Remaining: canonical encoding and signing identity, stronger randomized concurrency stress testing, pressure/DoS review, and integration only behind a verified trusted Android approval coordinator.
+
+
+## Signing identity and policy generation binding
+Grants now additionally bind a nonblank signing identity digest and positive policy version. This is a pure Kotlin value binding, **not** proof of a trusted identity: production integration must derive the digest from Android signing information and policy version from authoritative server state, never from request payloads. Altered digest/version values reject consumption. CI verification for the new changes is pending.
