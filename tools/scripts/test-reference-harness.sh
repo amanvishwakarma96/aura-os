@@ -19,7 +19,7 @@ touch "$tmp/aosp/build/envsetup.sh"
 cat > "$tmp/fakebin/repo" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
- manifest) printf '<manifest><project name="test" revision="abcdef"/></manifest>\n';;
+ manifest) [[ "$2" == '-r' && "$3" == '-o' ]] || exit 2; printf '<manifest><project name="test" revision="abcdef"/></manifest>\n' > "$4";;
  version) printf 'repo test stub\n';;
  *) exit 2;;
 esac
