@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aura.os.binderprobe.attacker">
+    <queries>
+        <package android:name="com.aura.os.binderprobe" />
+    </queries>
+    <application android:label="AURA IPC Negative Client" android:hasCode="true">
+        <!-- Separate UID/certificate. No ACCESS_AGENT_SERVICE uses-permission. -->
+        <service android:name=".AttackerBridgeService" android:exported="true" />
+    </application>
+</manifest>
