@@ -61,7 +61,7 @@ fun main() {
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(exp = "\"3600\"")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(exp = "3600.0")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(exp = "0")) }
-    rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(extra = ""","scope":"extra"""")) }
+    rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(extra = ",\"scope\":\"extra\"")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(extra = ""","unauthorized":true""")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson().dropLast(1) + "garbage") }
     rejected { AuraChatGptStrictTokenDecoder.decode("{\"access_token\":\"a\"}") }
@@ -104,9 +104,9 @@ fun main() {
     rejected { verifier.verify(signed(key, header,
         claims(iat = NOW + 120)), CLIENT, "original-nonce") }
     rejected { verifier.verify(signed(key, header,
-        claims(extra = ""","nbf":1800000120""")), CLIENT, "original-nonce") }
+        claims(extra = ",\"nbf\":1800000120")), CLIENT, "original-nonce") }
     rejected { verifier.verify(signed(key, header,
-        claims(extra = ""","sub":"duplicate"""")), CLIENT, "original-nonce") }
+        claims(extra = ",\"sub\":\"duplicate\"")), CLIENT, "original-nonce") }
     rejected { verifier.verify(valid.substringBeforeLast('.') + ".invalid-base64$", CLIENT, null) }
     rejected { verifier.verify(valid.substringBeforeLast('.') + "." + valid.substringAfterLast('.') + "=", CLIENT, null) }
 
