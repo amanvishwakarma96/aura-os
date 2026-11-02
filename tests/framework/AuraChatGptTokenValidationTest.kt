@@ -62,7 +62,7 @@ fun main() {
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(exp = "3600.0")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(exp = "0")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(extra = ",\"scope\":\"extra\"")) }
-    rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(extra = ""","unauthorized":true""")) }
+    rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson(extra = ",\"unauthorized\":true")) }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson().dropLast(1) + "garbage") }
     rejected { AuraChatGptStrictTokenDecoder.decode("{\"access_token\":\"a\"}") }
     rejected { AuraChatGptStrictTokenDecoder.decode(tokenJson().replace("Bearer", "MAC")) }
