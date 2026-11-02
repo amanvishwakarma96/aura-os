@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aura.os.binderprobe.tests">
+    <queries>
+        <package android:name="com.aura.os.binderprobe" />
+        <package android:name="com.aura.os.binderprobe.attacker" />
+    </queries>
+    <instrumentation
+        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:targetPackage="com.aura.os.binderprobe" />
+    <application android:hasCode="true" />
+</manifest>
