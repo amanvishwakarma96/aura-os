@@ -2,18 +2,20 @@ package com.aura.os.provider
 
 import java.io.ByteArrayOutputStream
 import java.net.URL
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import javax.net.ssl.HttpsURLConnection
 
 /**
  * Public-client HTTPS token transport: no API key, no client secret, no cookies.
  *
- * The injected decoder MUST enforce JSON size/type/duplicate-field rules.
- * Production must use a trusted Android JSON library; this transport alone
+ * The default decoder enforces JSON size/type/duplicate-field rules.
+ * Production must review the JSON parsing and JWKS trust boundaries; this transport alone
  * cannot activate a ChatGPT session without a verified OIDC/JWKS adapter.
  */
 class AuraChatGptTokenHttpClient(
-    private val decode: (String) -> AuraChatGptTokenResponse,
+    private val decode: (String) -> AuraChatGptTokenResponse = AuraChatGptStrictTokenDecoder::decode,
 ) : AuraChatGptTokenEndpoint {
     override fun exchange(request: AuraChatGptTokenRequest): AuraChatGptTokenResponse {
         val connection = URL(AuraChatGptTokenRequest.ENDPOINT)
@@ -54,7 +56,12 @@ class AuraChatGptTokenHttpClient(
                     output.write(chunk, 0, count)
                 }
             }
-            return decode(output.toString(StandardCharsets.UTF_8.name()))
+            val decodedUtf8 = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(output.toByteArray()))
+                .toString()
+            return decode(decodedUtf8)
         } finally {
             connection.disconnect()
         }
