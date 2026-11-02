@@ -1,5 +1,7 @@
 package com.aura.os.provider
 
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.Signature
@@ -103,7 +105,11 @@ class AuraChatGptRsaIdTokenVerifier(
     }
 
     private fun readPart(encoded: String, maxBytes: Int): String =
-        String(decodePart(encoded, maxBytes), StandardCharsets.UTF_8)
+        StandardCharsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(decodePart(encoded, maxBytes)))
+            .toString()
 
     private fun decodePart(encoded: String, maxBytes: Int): ByteArray {
         require(encoded.length <= maxBytes * 2 &&
