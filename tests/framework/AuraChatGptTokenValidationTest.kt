@@ -113,5 +113,27 @@ fun main() {
     val wrongKey = AuraChatGptRsaIdTokenVerifier({ another.public as RSAPublicKey }, { NOW })
     rejected { wrongKey.verify(valid, CLIENT, "original-nonce") }
 
+    val rsa = key.public as RSAPublicKey
+    val n = Base64.getUrlEncoder().withoutPadding()
+        .encodeToString(rsa.modulus.toByteArray().dropWhile { it == 0.toByte() }.toByteArray())
+    val e = Base64.getUrlEncoder().withoutPadding()
+        .encodeToString(rsa.publicExponent.toByteArray().dropWhile { it == 0.toByte() }.toByteArray())
+    val trustedJwks = """{"keys":[{"kty":"RSA","use":"sig","alg":"RS256",
+        "kid":"trusted-2026","n":"$n","e":"$e"}]}"""
+    val imported = AuraChatGptRsaJwks.parseTrustedDocument(trustedJwks)
+    check(imported.keys == setOf("trusted-2026"))
+    check(imported.getValue("trusted-2026").modulus == rsa.modulus)
+    val sourcedVerifier = AuraChatGptRsaIdTokenVerifier(imported::get, { NOW })
+    check(sourcedVerifier.verify(valid, CLIENT, "original-nonce").subject == "account-123")
+    rejected { AuraChatGptRsaJwks.parseTrustedDocument(trustedJwks.replace(
+        "\"keys\":[", "\"keys\":[{\"kty\":\"RSA\",\"kid\":\"duplicate\",\"n\":\"!\",\"e\":\"AQAB\"},"
+    )) }
+    rejected { AuraChatGptRsaJwks.parseTrustedDocument(trustedJwks.replace(
+        "\"alg\":\"RS256\"", "\"alg\":\"HS256\""
+    )) }
+    rejected { AuraChatGptRsaJwks.parseTrustedDocument(trustedJwks.replace(
+        "\"e\":\"$e\"", "\"e\":\"AA\""
+    )) }
+
     println("PASS: strict ChatGPT token decoding and signed OIDC claim verification")
 }
