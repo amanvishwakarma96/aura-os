@@ -1,0 +1,5 @@
+// Test-only adapter source group. No SystemServer registration.
+filegroup {
+    name: "aura-binder-android-adapter-sources",
+    srcs: ["src/com/aura/os/binder/*.kt"],
+}
