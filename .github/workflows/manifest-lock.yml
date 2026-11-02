@@ -1,0 +1,16 @@
+name: Manifest lock validator
+on:
+  push:
+    branches: [develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [develop, main]
+permissions:
+  contents: read
+jobs:
+  manifest-validator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit test immutable revision validation
+        run: python3 -m unittest discover -s tests/manifest -p 'test_*.py' -v
