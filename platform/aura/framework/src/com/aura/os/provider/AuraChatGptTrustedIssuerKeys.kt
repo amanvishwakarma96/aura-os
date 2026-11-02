@@ -52,7 +52,7 @@ class AuraChatGptTrustedIssuerKeys(
         val cached = current
         val fresh = cached != null && now >= cached.loadedAtMs && now < cached.expiresAtMs
         if (fresh) {
-            val known = cached!!.keys[kid]
+            val known = cached.keys[kid]
             if (known != null) return known
         }
 
