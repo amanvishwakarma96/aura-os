@@ -78,7 +78,8 @@ def verify(directory, expected_manifest_sha, expected_source_commit):
         if not re.fullmatch(r"aosp_cf_[A-Za-z0-9_]+-aosp_[A-Za-z0-9_]+-userdebug", build["lunch"]):
             errors.append("Non-Cuttlefish or non-userdebug lunch target")
         properties = _fields(_text(directory, "cuttlefish-platform-properties.txt"), PROPERTIES)
-        if (properties["product"] != build["lunch"].split("-aosp_", 1)[0]\n                or "cutf" not in properties["hardware"].lower()):
+        if (properties["product"] != build["lunch"].split("-aosp_", 1)[0]
+                or "cutf" not in properties["hardware"].lower()):
             errors.append("Selected Android device does not report Cuttlefish identity")
         if properties["build_type"] != "userdebug":
             errors.append("Selected device is not userdebug")
