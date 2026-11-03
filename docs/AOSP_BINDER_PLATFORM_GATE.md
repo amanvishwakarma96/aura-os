@@ -8,6 +8,8 @@ PR #13 feature branch was checked at `3624b3222ff8565997d09c0465f672bd0c97e113`.
 ## Capacity and approval
 Google's AOSP workstation guidance calls for **64 GB RAM, 400 GB free disk for a fresh checkout/build**, Linux x86_64, and an appropriate Cuttlefish/KVM host. This tool cannot use ordinary GitHub-hosted runners for the complete platform task. The session's available workspace is not a qualifying AOSP host.
 
+GitHub requires the workflow filename to exist on its default `main` branch before manual `workflow_dispatch`. PR #23 registered the **inert** default-branch version with `permissions: {}` and a permanently skipped job. Selecting `main` cannot run an AOSP build; choose `feature/binder-real-ipc-probe` explicitly when manually dispatching the **separately reviewed branch implementation**. The inert registration does **not** install a runner or prove any platform tests passed.
+
 The manual job in `.github/workflows/aosp-binder-platform-gate.yml` is deliberately restricted:
 - Only `workflow_dispatch` on `feature/binder-real-ipc-probe`, with the exact typed input `CONFIRM_AOSP_PLATFORM_GATE`.
 - Self-hosted runner with labels `self-hosted`, `Linux`, `X64`, `aura-aosp`; protected GitHub environment `aura-aosp-verification`.
