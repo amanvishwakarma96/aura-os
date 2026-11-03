@@ -78,7 +78,7 @@ def verify(directory, expected_manifest_sha, expected_source_commit):
         if not re.fullmatch(r"aosp_cf_[A-Za-z0-9_]+-aosp_[A-Za-z0-9_]+-userdebug", build["lunch"]):
             errors.append("Non-Cuttlefish or non-userdebug lunch target")
         properties = _fields(_text(directory, "cuttlefish-platform-properties.txt"), PROPERTIES)
-        if not properties["product"].startswith("aosp_cf_") or "cutf" not in properties["hardware"].lower():
+        if (properties["product"] != build["lunch"].split("-aosp_", 1)[0]\n                or "cutf" not in properties["hardware"].lower()):
             errors.append("Selected Android device does not report Cuttlefish identity")
         if properties["build_type"] != "userdebug":
             errors.append("Selected device is not userdebug")
@@ -103,7 +103,7 @@ def verify(directory, expected_manifest_sha, expected_source_commit):
             if binary.stat().st_size > 150_000_000:
                 errors.append("APK exceeds evidence size limit: " + filename)
                 continue
-            digest = hashlib.file_digest(binary.open("rb"), "sha256").hexdigest()
+            with binary.open("rb") as stream:\n                digest = hashlib.file_digest(stream, "sha256").hexdigest()
             if checksums[role] != digest:
                 errors.append("Built APK digest mismatch: " + filename)
     except (OSError, ValueError, ET.ParseError, UnicodeError, KeyError) as exc:
