@@ -79,6 +79,17 @@ m -j "$jobs" aura-framework-core AuraBinderProbeHost AuraBinderProbeAttacker Aur
   2>&1 | tee "$evidence/soong-binder-modules.log"
 product_out="$(get_build_var PRODUCT_OUT)"
 [[ -d "$product_out" ]] || { echo 'FAIL: AOSP product output missing' >&2; exit 1; }
+# Require the image built by this checkout, not a stale unrelated guest.
+fingerprint_file="$product_out/build_fingerprint.txt"
+[[ -f "$fingerprint_file" && ! -L "$fingerprint_file" && -s "$fingerprint_file" ]] || {
+  echo 'FAIL: missing built image fingerprint' >&2; exit 1;
+}
+mapfile -t built_lines < "$fingerprint_file"
+[[ "${#built_lines[@]}" == 1 && "${built_lines[0]}" =~ ^[[:graph:]]+$ ]] || {
+  echo 'FAIL: invalid built image fingerprint' >&2; exit 1;
+}
+built_fingerprint="${built_lines[0]}"
+cp -- "$fingerprint_file" "$evidence/built-image-fingerprint.txt"
 
 mkdir "$evidence/apks"
 declare -A modules=(
@@ -107,9 +118,13 @@ getprop() { adb -s "$AURA_ADB_SERIAL" shell getprop "$1" | tr -d '\r\n'; }
 product="$(getprop ro.product.name)"
 hardware="$(getprop ro.hardware)"
 type="$(getprop ro.build.type)"
+device_fingerprint="$(getprop ro.build.fingerprint)"
 expected_product="${AURA_LUNCH_TARGET%%-aosp_*}"
 [[ "$product" == "$expected_product" && "${hardware,,}" == *cutf* && "$type" == userdebug ]] || {
   echo "FAIL: selected adb target is NOT the approved Cuttlefish userdebug product" >&2; exit 1;
+}
+[[ -n "$device_fingerprint" && "$device_fingerprint" == "$built_fingerprint" ]] || {
+  echo 'FAIL: Cuttlefish does not match newly built image' >&2; exit 1;
 }
 {
   printf 'product=%s\n' "$product"

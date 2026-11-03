@@ -68,6 +68,15 @@ def verify(directory, expected_manifest_sha, expected_source_commit):
             errors.append("Device boot complete is not 1")
         if not re.search(r"(?m)^SELinux mode:\s*\nEnforcing\s*$", observations):
             errors.append("Device SELinux is not Enforcing")
+        # Bind the selected VM to the image produced by this AOSP checkout.
+        # A Cuttlefish-like product/hardware name alone is insufficient.
+        image_lines = _text(directory, "built-image-fingerprint.txt", 1024).splitlines()
+        if len(image_lines) != 1 or not (8 <= len(image_lines[0]) <= 512):
+            errors.append("Missing or malformed locally built image fingerprint")
+        else:
+            guest = re.search(r"(?m)^Build fingerprint:\r?\n([^\r\n]+)\r?$", observations)
+            if guest is None or guest.group(1) != image_lines[0]:
+                errors.append("Running Cuttlefish fingerprint differs from built AOSP image")
         build = _fields(_text(directory, "aosp-binder-build-target.txt"), BUILD_KEYS)
         if build["source_commit"] != expected_source_commit:
             errors.append("Evidence source commit differs from approved PR commit")

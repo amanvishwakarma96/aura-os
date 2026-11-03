@@ -28,6 +28,7 @@ def fixture(root):
         "Build fingerprint:\naosp_cf/fingerprint\n"
         "Boot complete:\n1\nSELinux mode:\nEnforcing\n"
     )
+    (root / "built-image-fingerprint.txt").write_text("aosp_cf/fingerprint\n")
     (root / "cuttlefish-platform-properties.txt").write_text(
         "product=aosp_cf_x86_64_only_phone\nhardware=cutf_cvm\nbuild_type=userdebug\n"
     )
@@ -89,6 +90,31 @@ class AospBinderPlatformGateTests(unittest.TestCase):
         observation.write_text("Boot complete:\n1\nSELinux mode:\nPermissive\n")
         self.assertTrue(self.issues())
 
+    def test_stale_or_different_running_image_fails_closed(self):
+        original = (self.root / "cuttlefish-observations.txt").read_text()
+        observations = self.root / "cuttlefish-observations.txt"
+        observations.write_text(original.replace(
+            "aosp_cf/fingerprint", "aosp_cf/stale-other-build"
+        ))
+        self.assertTrue(self.issues())
+        observations.write_text(original)
+        built = self.root / "built-image-fingerprint.txt"
+        built.write_text("aosp_cf/build-from-different-checkout\n")
+        self.assertTrue(self.issues())
+
+    def test_fingerprint_missing_or_multiple_lines_is_rejected(self):
+        built = self.root / "built-image-fingerprint.txt"
+        built.unlink()
+        self.assertTrue(self.issues())
+        built.write_text("aosp_cf/fingerprint\naosp_cf/other\n")
+        self.assertTrue(self.issues())
+        built.write_text("aosp_cf/fingerprint\n")
+        observations = self.root / "cuttlefish-observations.txt"
+        observations.write_text(
+            observations.read_text().replace("Build fingerprint:", "Fingerprint:")
+        )
+        self.assertTrue(self.issues())
+
     def test_generic_emulator_cannot_masquerade_as_cuttlefish(self):
         props = self.root / "cuttlefish-platform-properties.txt"
         props.write_text("product=sdk_gphone\nhardware=ranchu\nbuild_type=userdebug\n")
@@ -133,6 +159,14 @@ class AospBinderPlatformGateTests(unittest.TestCase):
         file.symlink_to(self.root / "metadata.txt")
         self.assertTrue(self.issues())
 
+    def test_shell_comparison_happens_before_install(self):
+        script = GATE.read_text(encoding="utf-8")
+        fingerprint = script.index('device_fingerprint="$(getprop ro.build.fingerprint)"')
+        compare = script.index('"$device_fingerprint" == "$built_fingerprint"')
+        installer = script.index('adb -s "$AURA_ADB_SERIAL" install')
+        self.assertLess(fingerprint, compare)
+        self.assertLess(compare, installer)
+        self.assertIn('built-image-fingerprint.txt', script)
     def test_execution_script_fails_closed_without_explicit_opt_in(self):
         env = os.environ.copy()
         for name in (
