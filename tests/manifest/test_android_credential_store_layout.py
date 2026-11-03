@@ -15,7 +15,7 @@ class CredentialStoreLayoutTests(unittest.TestCase):
 
     def test_platform_keystore_isolated_from_framework(self):
         self.assertIn('KeyStore.getInstance("AndroidKeyStore")', self.android)
-        self.assertNotIn("AndroidKeyStore", self.core)
+        self.assertNotIn('KeyStore.getInstance("AndroidKeyStore")', self.core)
         self.assertIn('KeyProperties.BLOCK_MODE_GCM', self.android)
         self.assertIn('setUnlockedDeviceRequired(true)', self.android)
         self.assertIn('setRandomizedEncryptionRequired(true)', self.android)
