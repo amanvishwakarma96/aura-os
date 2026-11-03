@@ -29,7 +29,7 @@ The manual job in `.github/workflows/aosp-binder-platform-gate.yml` is deliberat
 4. Copies source files into the previously absent, isolated AOSP path `vendor/aura/verification/platform/aura`. It refuses to overwrite an existing staging directory and does not update product packages or modify `SystemServer`.
 5. Sources `build/envsetup.sh`, selects the operator-approved Cuttlefish lunch target, runs a full Android `m` build, then runs Soong `m` for `aura-framework-core`, `AuraBinderProbeHost`, `AuraBinderProbeAttacker`, and `AuraBinderProbeTests`.
 6. Requires newly generated APKs and records actual APK SHA-256 and signing certificate digests. The host and attacker must have **different** signing certs.
-7. Before installing anything, checks the explicit ADB device is booted, SELinux is Enforcing, and its product/hardware/type identify the approved Cuttlefish userdebug VM. **Never run this against a physical phone.**
+7. Before installing anything, checks the explicit ADB device is booted, SELinux is Enforcing, its product/hardware/type identify the approved Cuttlefish userdebug VM, **and its runtime `ro.build.fingerprint` matches the locally compiled `PRODUCT_OUT/build_fingerprint.txt` exactly**. Missing or mismatched fingerprints fail closed. **Never run this against a physical phone.**
 8. Installs only the test APKs on that selected Cuttlefish VM and executes the existing Binder instrumented tests; requires **both** successful test result and an actual successful instrumentation exit.
 9. Runs `verify-aosp-binder-platform-evidence.py` against the real manifest, APK files, recorded signatures, build metadata, device properties and two-test instrumentation output.
 
@@ -38,6 +38,8 @@ The manual job in `.github/workflows/aosp-binder-platform-gate.yml` is deliberat
 ## Fail-closed limitations
 - The workflow's *offline* contract job tests fabricated positive/negative evidence and the manual opt-in guard. Passing **does not** mean the self-hosted job ever executed.
 - A preapproved manifest checksum is necessary but not equivalent to supply-chain signature verification or device hardware attestation.
+- Matching the guest `ro.build.fingerprint` to the built image is a strong consistency gate against an unrelated or stale VM, **not cryptographic image attestation or a proof that every image partition byte was loaded from this checkout**. Builds with dynamic fingerprints or moved output locations must be investigated on the selected pinned AOSP branch; never bypass the equality check just to make the gate green.
+- The gate reads the canonical AOSP `PRODUCT_OUT/build_fingerprint.txt`. If the chosen pinned platform produces a different file, adapt the source after inspecting the real build. Do not use operator-supplied free-text fingerprints as a substitute.
 - The APK finder requires a unique newly built APK for each module; if Soong produces multiple output copies or different output locations the gate will **fail** until the actual pinned AOSP layout is investigated. No fallback to stale APK files is allowed.
 - Soong module definitions have not been confirmed on a real pinned AOSP checkout. Compilation failures must be fixed from the true Soong errors, not hidden by downgrading to SDK-only builds.
 - The script expects a **previously booted** Cuttlefish userdebug VM and is intentionally unable to launch an arbitrary physical device. A separate operator must install Cuttlefish host packages and boot an image built from the approved source.
