@@ -29,7 +29,9 @@ class CredentialStoreLayoutTests(unittest.TestCase):
         self.assertIn("file.failWrite(stream)", self.android)
 
     def test_account_isolation_and_disconnect(self):
-        self.assertIn("UserHandle.getUserId(Process.myUid())", self.android)
+        self.assertIn("Process.myUid()", self.android)
+        self.assertIn("uid / 100_000", self.android)
+        self.assertIn("UserHandle.getUserHandleForUid(uid)", self.android)
         self.assertIn('MessageDigest.getInstance("SHA-256")', self.android)
         self.assertIn("keyStore.delete(key)", self.core)
         self.assertIn("records.delete(key)", self.core)

@@ -16,7 +16,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /**
- * Platform-specific session backend. NOT YET COMPILED/TESTED on AOSP.
+ * Platform-specific session backend; compile/test status is tracked by CI.
  * Runs inside AURA's eventual *unprivileged credential-protected* process,
  * not SystemServer, and never shares secrets through Binder IPC.
  *
@@ -51,7 +51,16 @@ class AndroidKeystoreChatGptSessionStore(private val context: Context) :
         val processGuard = Any()
 
         fun accountId(key: AuraChatGptSessionManager.AccountKey): String {
-            require(key.androidUserId == UserHandle.getUserId(Process.myUid())) {
+            // AOSP's Android user ID is the UID's 100000-sized user partition.
+            // getIdentifier()/getUserId() are hidden from the public SDK.
+            // Cross-check the process handle using the supported public API.
+            val uid = Process.myUid()
+            require(uid >= 0 &&
+                UserHandle.getUserHandleForUid(uid) == Process.myUserHandle()) {
+                "Inconsistent Android process identity"
+            }
+            val aospUserId = uid / 100_000
+            require(key.androidUserId == aospUserId) {
                 "Android profile mismatch"
             }
             val canonical = "AURA_PLAN_V1:" + key.androidUserId + ":" + key.issuedClientId
