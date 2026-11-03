@@ -79,6 +79,140 @@ m -j "$jobs" aura-framework-core AuraBinderProbeHost AuraBinderProbeAttacker Aur
   2>&1 | tee "$evidence/soong-binder-modules.log"
 product_out="$(get_build_var PRODUCT_OUT)"
 [[ -d "$product_out" ]] || { echo 'FAIL: AOSP product output missing' >&2; exit 1; }
+# AOSP publishes the completed image's fingerprint in PRODUCT_OUT.
+# Unlike ro.product.name, this binds the running guest to the build under test.
+# Any missing/empty/different value stops execution BEFORE installing test APKs.
+fingerprint_file="$product_out/build_fingerprint.txt"
+[[ -f "$fingerprint_file" && ! -L "$fingerprint_file" && -s "$fingerprint_file" ]] || {
+  echo 'FAIL: freshly built AOSP fingerprint file is missing' >&2; exit 1;
+}
+mapfile -t fingerprints < "$fingerprint_file"
+[[ "${#fingerprints[@]}" == 1 && -n "${fingerprints[0]}" ]] || {
+  echo 'FAIL: unexpected AOSP build fingerprint format' >&2; exit 1;
+}
+built_fingerprint="${fingerprints[0]%
+declare -A modules=(
+  [host]=AuraBinderProbeHost [attacker]=AuraBinderProbeAttacker
+  [tests]=AuraBinderProbeTests
+)
+for role in host attacker tests; do
+  module="${modules[$role]}"
+  mapfile -d '' -t matched < <(find "$product_out" -type f -name "$module.apk" \
+    -newer "$build_marker" -print0)
+  [[ "${#matched[@]}" == 1 ]] || {
+    echo "FAIL: expected exactly one newly built $module.apk in product output" >&2; exit 1;
+  }
+  cp -- "${matched[0]}" "$evidence/apks/$module.apk"
+  digest="$(sha256sum "$evidence/apks/$module.apk" | awk '{print $1}')"
+  printf '%s=%s\n' "$role" "$digest" >> "$evidence/apk-sha256.txt"
+  signer="$(apksigner verify --print-certs "$evidence/apks/$module.apk" \
+    | awk '/Signer #1 certificate SHA-256 digest:/ {print tolower($NF)}' | head -n 1)"
+  [[ "$signer" =~ ^[0-9a-f]{64}$ ]] || { echo "FAIL: signer missing for $module" >&2; exit 1; }
+  printf '%s=%s\n' "$role" "$signer" >> "$evidence/signer-sha256.txt"
+done
+
+# Inspect a specifically named Cuttlefish device BEFORE installing any test APK.
+bash "$source_repo/tools/scripts/aosp-verify-cuttlefish.sh" "$aosp" "$evidence" "$AURA_ADB_SERIAL"
+getprop() { adb -s "$AURA_ADB_SERIAL" shell getprop "$1" | tr -d '\r\n'; }
+product="$(getprop ro.product.name)"
+hardware="$(getprop ro.hardware)"
+type="$(getprop ro.build.type)"
+device_fingerprint="$(getprop ro.build.fingerprint)"
+expected_product="${AURA_LUNCH_TARGET%%-aosp_*}"
+[[ "$product" == "$expected_product" && "${hardware,,}" == *cutf* && "$type" == userdebug ]] || {
+  echo "FAIL: selected adb target is NOT the approved Cuttlefish userdebug product" >&2; exit 1;
+}
+[[ -n "$device_fingerprint" && "$device_fingerprint" == "$built_fingerprint" ]] || {
+  echo 'FAIL: Cuttlefish is not running the newly built AOSP image fingerprint' >&2; exit 1;
+}
+{
+  printf 'product=%s\n' "$product"
+  printf 'hardware=%s\n' "$hardware"
+  printf 'build_type=%s\n' "$type"
+} > "$evidence/cuttlefish-platform-properties.txt"
+
+# Only APK installs to this checked, explicitly selected Cuttlefish serial.
+for role in host attacker tests; do
+  adb -s "$AURA_ADB_SERIAL" install -r "$evidence/apks/${modules[$role]}.apk"
+done
+adb -s "$AURA_ADB_SERIAL" shell am instrument -w \
+  com.aura.os.binderprobe.tests/androidx.test.runner.AndroidJUnitRunner \
+  | tee "$evidence/aosp-binder-instrumentation.txt"
+
+{
+  printf 'source_commit=%s\n' "$AURA_EXPECTED_SOURCE_COMMIT"
+  printf 'lunch=%s\n' "$AURA_LUNCH_TARGET"
+  printf 'manifest_sha=%s\n' "$manifest_sha"
+  printf 'full_build=PASS\n'
+  printf 'soong_modules=PASS\n'
+} > "$evidence/aosp-binder-build-target.txt"
+python3 "$source_repo/tools/scripts/verify-aosp-binder-platform-evidence.py" \
+  "$evidence" --expected-manifest-sha "$AURA_EXPECTED_MANIFEST_SHA256" \
+  --expected-source-commit "$AURA_EXPECTED_SOURCE_COMMIT"
+echo 'PASS: full AOSP + Soong + selected Cuttlefish Binder test evidence recorded.'
+echo 'No physical phone flashed, no production service registered.'
+\r'}"
+[[ -n "$built_fingerprint" && "$built_fingerprint" != *[
+declare -A modules=(
+  [host]=AuraBinderProbeHost [attacker]=AuraBinderProbeAttacker
+  [tests]=AuraBinderProbeTests
+)
+for role in host attacker tests; do
+  module="${modules[$role]}"
+  mapfile -d '' -t matched < <(find "$product_out" -type f -name "$module.apk" \
+    -newer "$build_marker" -print0)
+  [[ "${#matched[@]}" == 1 ]] || {
+    echo "FAIL: expected exactly one newly built $module.apk in product output" >&2; exit 1;
+  }
+  cp -- "${matched[0]}" "$evidence/apks/$module.apk"
+  digest="$(sha256sum "$evidence/apks/$module.apk" | awk '{print $1}')"
+  printf '%s=%s\n' "$role" "$digest" >> "$evidence/apk-sha256.txt"
+  signer="$(apksigner verify --print-certs "$evidence/apks/$module.apk" \
+    | awk '/Signer #1 certificate SHA-256 digest:/ {print tolower($NF)}' | head -n 1)"
+  [[ "$signer" =~ ^[0-9a-f]{64}$ ]] || { echo "FAIL: signer missing for $module" >&2; exit 1; }
+  printf '%s=%s\n' "$role" "$signer" >> "$evidence/signer-sha256.txt"
+done
+
+# Inspect a specifically named Cuttlefish device BEFORE installing any test APK.
+bash "$source_repo/tools/scripts/aosp-verify-cuttlefish.sh" "$aosp" "$evidence" "$AURA_ADB_SERIAL"
+getprop() { adb -s "$AURA_ADB_SERIAL" shell getprop "$1" | tr -d '\r\n'; }
+product="$(getprop ro.product.name)"
+hardware="$(getprop ro.hardware)"
+type="$(getprop ro.build.type)"
+expected_product="${AURA_LUNCH_TARGET%%-aosp_*}"
+[[ "$product" == "$expected_product" && "${hardware,,}" == *cutf* && "$type" == userdebug ]] || {
+  echo "FAIL: selected adb target is NOT the approved Cuttlefish userdebug product" >&2; exit 1;
+}
+{
+  printf 'product=%s\n' "$product"
+  printf 'hardware=%s\n' "$hardware"
+  printf 'build_type=%s\n' "$type"
+} > "$evidence/cuttlefish-platform-properties.txt"
+
+# Only APK installs to this checked, explicitly selected Cuttlefish serial.
+for role in host attacker tests; do
+  adb -s "$AURA_ADB_SERIAL" install -r "$evidence/apks/${modules[$role]}.apk"
+done
+adb -s "$AURA_ADB_SERIAL" shell am instrument -w \
+  com.aura.os.binderprobe.tests/androidx.test.runner.AndroidJUnitRunner \
+  | tee "$evidence/aosp-binder-instrumentation.txt"
+
+{
+  printf 'source_commit=%s\n' "$AURA_EXPECTED_SOURCE_COMMIT"
+  printf 'lunch=%s\n' "$AURA_LUNCH_TARGET"
+  printf 'manifest_sha=%s\n' "$manifest_sha"
+  printf 'full_build=PASS\n'
+  printf 'soong_modules=PASS\n'
+} > "$evidence/aosp-binder-build-target.txt"
+python3 "$source_repo/tools/scripts/verify-aosp-binder-platform-evidence.py" \
+  "$evidence" --expected-manifest-sha "$AURA_EXPECTED_MANIFEST_SHA256" \
+  --expected-source-commit "$AURA_EXPECTED_SOURCE_COMMIT"
+echo 'PASS: full AOSP + Soong + selected Cuttlefish Binder test evidence recorded.'
+echo 'No physical phone flashed, no production service registered.'
+\t\r\n']* ]] || {
+  echo 'FAIL: invalid AOSP build fingerprint' >&2; exit 1;
+}
+printf '%s\n' "$built_fingerprint" > "$evidence/built-image-fingerprint.txt"
 
 mkdir "$evidence/apks"
 declare -A modules=(
