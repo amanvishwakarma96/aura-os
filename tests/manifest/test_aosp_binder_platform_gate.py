@@ -28,6 +28,7 @@ def fixture(root):
         "Build fingerprint:\naosp_cf/fingerprint\n"
         "Boot complete:\n1\nSELinux mode:\nEnforcing\n"
     )
+    (root / "built-image-fingerprint.txt").write_text("aosp_cf/fingerprint\n")
     (root / "cuttlefish-platform-properties.txt").write_text(
         "product=aosp_cf_x86_64_only_phone\nhardware=cutf_cvm\nbuild_type=userdebug\n"
     )
@@ -87,6 +88,31 @@ class AospBinderPlatformGateTests(unittest.TestCase):
         observation.write_text("Boot complete:\n0\nSELinux mode:\nEnforcing\n")
         self.assertTrue(self.issues())
         observation.write_text("Boot complete:\n1\nSELinux mode:\nPermissive\n")
+        self.assertTrue(self.issues())
+
+    def test_stale_or_different_running_image_fails_closed(self):
+        original = (self.root / "cuttlefish-observations.txt").read_text()
+        observations = self.root / "cuttlefish-observations.txt"
+        observations.write_text(original.replace(
+            "aosp_cf/fingerprint", "aosp_cf/stale-other-build"
+        ))
+        self.assertTrue(self.issues())
+        observations.write_text(original)
+        built = self.root / "built-image-fingerprint.txt"
+        built.write_text("aosp_cf/build-from-different-checkout\n")
+        self.assertTrue(self.issues())
+
+    def test_fingerprint_missing_or_multiple_lines_is_rejected(self):
+        built = self.root / "built-image-fingerprint.txt"
+        built.unlink()
+        self.assertTrue(self.issues())
+        built.write_text("aosp_cf/fingerprint\naosp_cf/other\n")
+        self.assertTrue(self.issues())
+        built.write_text("aosp_cf/fingerprint\n")
+        observations = self.root / "cuttlefish-observations.txt"
+        observations.write_text(
+            observations.read_text().replace("Build fingerprint:", "Fingerprint:")
+        )
         self.assertTrue(self.issues())
 
     def test_generic_emulator_cannot_masquerade_as_cuttlefish(self):
