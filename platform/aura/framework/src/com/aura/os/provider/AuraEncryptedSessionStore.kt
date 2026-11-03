@@ -131,12 +131,14 @@ object AuraSealedSessionCodec {
             out.writeInt(session.grantedScopes.size)
             for (scope in session.grantedScopes.sorted()) out.writeUTF(scope)
         }
-        val iv = ByteArray(IV_BYTES)
-        random.nextBytes(iv)
-        val aad = aad(key)
+        // AndroidKeyStore randomized-encryption keys reject caller-supplied
+        // IVs. Let the crypto provider create a fresh GCM IV and archive it
+        // alongside the authenticated ciphertext for later decryption.
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, secret, GCMParameterSpec(TAG_BITS, iv))
-        cipher.updateAAD(aad)
+        cipher.init(Cipher.ENCRYPT_MODE, secret, random)
+        val iv = cipher.iv ?: error("GCM encryption provider returned no IV")
+        require(iv.size == IV_BYTES) { "Unexpected GCM provider IV size" }
+        cipher.updateAAD(aad(key))
         val sealed = cipher.doFinal(plaintext.toByteArray())
         val result = magic + byteArrayOf(VERSION.toByte()) + iv + sealed
         require(result.size <= MAX_RECORD) { "Encrypted session record exceeds size limit" }
