@@ -4,6 +4,9 @@
         android:name="com.aura.os.permission.ACCESS_AGENT_SERVICE"
         android:protectionLevel="signature" />
     <uses-permission android:name="com.aura.os.permission.ACCESS_AGENT_SERVICE" />
+    <queries>
+        <package android:name="com.aura.os.binderprobe.attacker" />
+    </queries>
     <application android:label="AURA IPC Test Host" android:hasCode="true">
         <!-- Exported intentionally to test denial inside onTransact. Never ship. -->
         <service

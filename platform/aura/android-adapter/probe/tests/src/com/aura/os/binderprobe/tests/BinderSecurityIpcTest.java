@@ -3,12 +3,12 @@ package com.aura.os.binderprobe.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Process;
@@ -93,6 +93,16 @@ public class BinderSecurityIpcTest {
 
     @Test public void untrustedSeparateApkCannotUseForgedTrustedPackage() throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        assertEquals("Attacker test APK must be signed with a different certificate",
+                PackageManager.SIGNATURE_NO_MATCH,
+                context.getPackageManager().checkSignatures(
+                        "com.aura.os.binderprobe",
+                        "com.aura.os.binderprobe.attacker"));
+        assertEquals("Attacker APK must not hold the signature-only permission",
+                PackageManager.PERMISSION_DENIED,
+                context.getPackageManager().checkPermission(
+                        "com.aura.os.permission.ACCESS_AGENT_SERVICE",
+                        "com.aura.os.binderprobe.attacker"));
         ComponentName attacker = new ComponentName("com.aura.os.binderprobe.attacker",
                 "com.aura.os.binderprobe.attacker.AttackerBridgeService");
         try (BoundService connection = new BoundService(context, attacker)) {
