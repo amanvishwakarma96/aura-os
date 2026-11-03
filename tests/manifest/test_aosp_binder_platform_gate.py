@@ -159,6 +159,14 @@ class AospBinderPlatformGateTests(unittest.TestCase):
         file.symlink_to(self.root / "metadata.txt")
         self.assertTrue(self.issues())
 
+    def test_shell_comparison_happens_before_install(self):
+        script = GATE.read_text(encoding="utf-8")
+        fingerprint = script.index('device_fingerprint="$(getprop ro.build.fingerprint)"')
+        compare = script.index('"$device_fingerprint" == "$built_fingerprint"')
+        installer = script.index('adb -s "$AURA_ADB_SERIAL" install')
+        self.assertLess(fingerprint, compare)
+        self.assertLess(compare, installer)
+        self.assertIn('built-image-fingerprint.txt', script)
     def test_execution_script_fails_closed_without_explicit_opt_in(self):
         env = os.environ.copy()
         for name in (
