@@ -1,0 +1,18 @@
+# Inert default-branch registration for GitHub workflow_dispatch.
+# The actual gated implementation is tested on feature/binder-real-ipc-probe.
+# Selecting main can NEVER start a build or access a self-hosted runner.
+name: Pinned AOSP Soong and Cuttlefish Binder gate
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: 'Type CONFIRM_AOSP_PLATFORM_GATE on approved feature branch'
+        required: true
+        type: string
+permissions: {}
+jobs:
+  registration-only:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Inert main-branch registration: no AOSP execution'
