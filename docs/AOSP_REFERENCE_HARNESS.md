@@ -1,6 +1,6 @@
 # AOSP Reference Build & Binder Test Harness — Phase Gate
 
-**Status:** Host preflight, baseline capture and non-destructive observation scripts added. No AOSP sync, build, Cuttlefish launch, Android instrumentation execution, or real Binder IPC tests performed.
+**Status (2026-11-03):** Host preflight, baseline capture, and strict observation scripts exist. Separately, Android 15 SDK emulator Binder IPC (2 tests) and Keystore (3 tests) instrumentation passed on PR #13's feature branch. **No full AOSP/Soong build or Cuttlefish run has yet been verified.** Milestone #22 adds an opt-in self-hosted full-platform gate (see `docs/AOSP_BINDER_PLATFORM_GATE.md`).
 
 ## Baseline decision
 Use Google's official `android-latest-release` only for initial checkout selection. This alias is moving. After `repo sync`, execute `repo manifest -r` and archive the locked revisions before declaring any particular AOSP baseline reproducible. A concrete branch/revision is **not pinned yet**.
@@ -15,7 +15,7 @@ Use Google's official `android-latest-release` only for initial checkout selecti
 7. Add a separate Binder test service and **separate-process** callers for permission-denial cases. A fake platform test is insufficient.
 
 ## Release gate
-Require documented branch + pinned manifest, successful Soong build, booted Cuttlefish, SELinux Enforcing, successful instrumentation results, and real Binder negative tests. The current Android adapter isn't registered in SystemServer and has not passed these gates.
+Require a reviewed immutable manifest checksum, successful full AOSP/Soong build, booted Cuttlefish with SELinux Enforcing, and Soong-built signed APK instrumentation for the real Binder negative tests. The current adapter is not registered in SystemServer. GitHub-hosted SDK tests are not sufficient to satisfy this gate.
 
 ## Safety
 The scripts do not download or flash firmware. Evidence can contain host/device identifiers; review before publication. Never upload proprietary blobs or private keys.
