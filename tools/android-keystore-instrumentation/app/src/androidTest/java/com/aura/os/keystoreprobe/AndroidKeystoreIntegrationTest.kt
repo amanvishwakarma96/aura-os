@@ -23,7 +23,7 @@ class AndroidKeystoreIntegrationTest {
     private val context: Context
         get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val userId: Int
-        get() = Process.myUserHandle().identifier
+        get() = Process.myUid() / 100_000
 
     private fun freshAccount(): AuraChatGptSessionManager.AccountKey =
         AuraChatGptSessionManager.AccountKey(userId, "oaiapp_probe_${UUID.randomUUID()}")
