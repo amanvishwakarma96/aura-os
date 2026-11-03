@@ -3,6 +3,7 @@ package com.aura.os.provider
 import android.content.Context
 import android.os.Build
 import android.os.Process
+import android.os.UserHandle
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
@@ -50,7 +51,16 @@ class AndroidKeystoreChatGptSessionStore(private val context: Context) :
         val processGuard = Any()
 
         fun accountId(key: AuraChatGptSessionManager.AccountKey): String {
-            require(key.androidUserId == Process.myUserHandle().identifier) {
+            // AOSP's Android user ID is the UID's 100000-sized user partition.
+            // getIdentifier()/getUserId() are hidden from the public SDK.
+            // Cross-check the process handle using the supported public API.
+            val uid = Process.myUid()
+            require(uid >= 0 &&
+                UserHandle.getUserHandleForUid(uid) == Process.myUserHandle()) {
+                "Inconsistent Android process identity"
+            }
+            val aospUserId = uid / 100_000
+            require(key.androidUserId == aospUserId) {
                 "Android profile mismatch"
             }
             val canonical = "AURA_PLAN_V1:" + key.androidUserId + ":" + key.issuedClientId
