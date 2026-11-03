@@ -3,7 +3,6 @@ package com.aura.os.provider
 import android.content.Context
 import android.os.Build
 import android.os.Process
-import android.os.UserHandle
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
@@ -16,7 +15,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /**
- * Platform-specific session backend. NOT YET COMPILED/TESTED on AOSP.
+ * Platform-specific session backend; compile/test status is tracked by CI.
  * Runs inside AURA's eventual *unprivileged credential-protected* process,
  * not SystemServer, and never shares secrets through Binder IPC.
  *
@@ -51,7 +50,7 @@ class AndroidKeystoreChatGptSessionStore(private val context: Context) :
         val processGuard = Any()
 
         fun accountId(key: AuraChatGptSessionManager.AccountKey): String {
-            require(key.androidUserId == UserHandle.getUserId(Process.myUid())) {
+            require(key.androidUserId == Process.myUserHandle().identifier) {
                 "Android profile mismatch"
             }
             val canonical = "AURA_PLAN_V1:" + key.androidUserId + ":" + key.issuedClientId
