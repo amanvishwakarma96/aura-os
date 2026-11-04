@@ -1,0 +1,37 @@
+// Isolated Binder IPC exercise. These are test APKs, not production services.
+android_app {
+    name: "AuraBinderProbeHost",
+    srcs: [
+        "host/src/**/*.kt",
+        ":aura-binder-android-adapter-sources",
+    ],
+    manifest: "host/AndroidManifest.xml",
+    static_libs: ["aura-framework-core"],
+    platform_apis: true,
+    certificate: "testkey",
+    min_sdk_version: "35",
+}
+
+android_test_helper_app {
+    name: "AuraBinderProbeAttacker",
+    srcs: ["attacker/src/**/*.kt"],
+    manifest: "attacker/AndroidManifest.xml",
+    sdk_version: "35",
+    certificate: "media",
+    test_suites: ["general-tests"],
+}
+
+android_test {
+    name: "AuraBinderProbeTests",
+    srcs: ["tests/src/**/*.java"],
+    manifest: "tests/AndroidManifest.xml",
+    instrumentation_for: "AuraBinderProbeHost",
+    static_libs: [
+        "androidx.test.runner",
+        "androidx.test.ext.junit",
+    ],
+    certificate: "testkey",
+    sdk_version: "35",
+    test_suites: ["general-tests"],
+    data: [":AuraBinderProbeAttacker"],
+}

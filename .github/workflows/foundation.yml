@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, develop, 'feature/**', 'fix/**']
   pull_request:
-    branches: [main, develop]
+    branches: ['**']
 permissions:
   contents: read
 jobs:

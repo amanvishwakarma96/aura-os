@@ -1,0 +1,75 @@
+name: Pinned AOSP Soong and Cuttlefish Binder gate
+
+on:
+  push:
+    branches: [develop, 'feature/**', 'fix/**']
+    paths:
+      - '.github/workflows/aosp-binder-platform-gate.yml'
+      - 'tools/scripts/aosp-binder-platform-gate.sh'
+      - 'tools/scripts/verify-aosp-binder-platform-evidence.py'
+      - 'tests/manifest/test_aosp_binder_platform_gate.py'
+      - 'docs/AOSP_BINDER_PLATFORM_GATE.md'
+  pull_request:
+    branches: ['**']
+    paths:
+      - '.github/workflows/aosp-binder-platform-gate.yml'
+      - 'tools/scripts/aosp-binder-platform-gate.sh'
+      - 'tools/scripts/verify-aosp-binder-platform-evidence.py'
+      - 'tests/manifest/test_aosp_binder_platform_gate.py'
+      - 'docs/AOSP_BINDER_PLATFORM_GATE.md'
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: 'Type CONFIRM_AOSP_PLATFORM_GATE to run only on approved isolated Cuttlefish'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  offline-evidence-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate fail-closed gate script and evidence assertions
+        run: |
+          bash -n tools/scripts/aosp-binder-platform-gate.sh
+          python3 -m unittest discover -s tests/manifest -p 'test_aosp_binder_platform_gate.py' -v
+      - name: State offline-only verification level
+        run: echo 'Only fake evidence and safety contracts tested; NO AOSP/Soong build or Cuttlefish run.'
+
+  pinned-aosp-and-cuttlefish:
+    # NEVER execute privileged self-hosted jobs for an unmerged PR.
+    # Run manually only AFTER the gate source is merged to the parent branch.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          && inputs.execute == 'CONFIRM_AOSP_PLATFORM_GATE'
+          && github.ref == 'refs/heads/feature/binder-real-ipc-probe' }}
+    needs: offline-evidence-contract
+    runs-on: [self-hosted, Linux, X64, aura-aosp]
+    environment: aura-aosp-verification
+    timeout-minutes: 360
+    concurrency:
+      group: aura-aosp-platform-verification
+      cancel-in-progress: false
+    env:
+      AURA_GATE_EXECUTE: 'YES'
+      AURA_AOSP_DIR: ${{ vars.AURA_AOSP_DIR }}
+      AURA_EVIDENCE_DIR: ${{ runner.temp }}/aura-binder-${{ github.run_id }}-${{ github.run_attempt }}
+      AURA_ADB_SERIAL: ${{ vars.AURA_CUTTLEFISH_SERIAL }}
+      AURA_EXPECTED_MANIFEST_SHA256: ${{ vars.AURA_LOCKED_MANIFEST_SHA256 }}
+      AURA_EXPECTED_SOURCE_COMMIT: ${{ github.sha }}
+      AURA_LUNCH_TARGET: ${{ vars.AURA_AOSP_LUNCH_TARGET }}
+      AURA_JOBS: '8'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify preapproved pinned AOSP, full build, Soong and selected Cuttlefish
+        run: bash tools/scripts/aosp-binder-platform-gate.sh
+      - name: Record success without exporting raw host/device evidence
+        run: |
+          echo 'PASS: full pinned AOSP/Soong/Cuttlefish gate.'
+          echo 'Raw logs, serials and manifest remain on protected self-hosted runner.'
