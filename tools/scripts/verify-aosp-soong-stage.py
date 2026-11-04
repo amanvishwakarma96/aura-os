@@ -67,7 +67,50 @@ def inspect(root: Path) -> list[str]:
             if name in observed_modules:
                 issues.append(f"Duplicate global Soong module: {name}")
             observed_modules.add(name)
-        if any(token in source for token in BLOCKED_BUILD_TOKENS):
+        executable = re.sub(r'(?m)^\\s*//[^\\n]*
+            issues.append(f"Production/privileged module wiring in test-only Blueprint: {relative}")
+    probe = root / "platform/aura/android-adapter/probe/Android.bp"
+    if probe.is_file() and not probe.is_symlink():
+        src = probe.read_text(encoding="utf-8")
+        if 'certificate: "testkey"' not in src or 'certificate: "media"' not in src:
+            issues.append("Host and negative caller must use separate AOSP test signer aliases")
+        if 'instrumentation_for: "AuraBinderProbeHost"' not in src:
+            issues.append("Binder instrumentation target is not explicitly bound")
+        if '":aura-binder-android-adapter-sources"' not in src:
+            issues.append("Binder host does not compile real AURA adapter sources")
+    for relative in REQUIRED_FILES:
+        path = root / relative
+        if path.is_symlink() or not path.is_file() or path.stat().st_size == 0:
+            issues.append(f"Missing/unsafe test APK manifest: {relative}")
+    for relative, pattern in SOURCE_PATTERNS.items():
+        folder = root / relative
+        if folder.is_symlink() or not folder.is_dir():
+            issues.append(f"Missing/unsafe source tree: {relative}")
+            continue
+        matching = list(folder.rglob(pattern))
+        if not matching or any(not p.is_file() or p.is_symlink() for p in matching):
+            issues.append(f"Missing/unsafe test module source: {relative}/{pattern}")
+    return issues
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", type=Path, help="AURA repository root or isolated AOSP staging root")
+    args = parser.parse_args()
+    errors = inspect(args.root.resolve())
+    if errors:
+        for issue in errors:
+            print("FAIL: " + issue, file=sys.stderr)
+        return 1
+    print("PASS: AURA test-only Soong source graph and stage source files are consistent")
+    print("NOTE: only a full AOSP/Soong build can verify actual module compilation")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+, '', source)
+        if any(token in executable for token in BLOCKED_BUILD_TOKENS):
             issues.append(f"Production/privileged module wiring in test-only Blueprint: {relative}")
     probe = root / "platform/aura/android-adapter/probe/Android.bp"
     if probe.is_file() and not probe.is_symlink():
