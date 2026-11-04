@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "target": "xiaomi/merlinx",
+  "status": "SOURCE_AUDIT_ONLY",
+  "observed_at_utc": "2026-11-04",
+  "upstream_owner": "LineageOS",
+  "source_branch": "lineage-24.0",
+  "firmware_base_android": "12",
+  "aura_aosp_compatibility_verified": false,
+  "proprietary_vendor_blobs_approved": false,
+  "physical_device_tested": false,
+  "flash_ready": false,
+  "physical_flash_authorized": false,
+  "sources": [
+    {
+      "repository": "android_device_xiaomi_merlinx",
+      "path": "device/xiaomi/merlinx",
+      "sha": "0a954634bd18006ce49183bee50eb9762efea58f"
+    },
+    {
+      "repository": "android_device_xiaomi_mt6768-common",
+      "path": "device/xiaomi/mt6768-common",
+      "sha": "3f0327f1a21c6f992b065712c64cf27e8a559bd8"
+    },
+    {
+      "repository": "android_device_mediatek_sepolicy_vndr",
+      "path": "device/mediatek/sepolicy_vndr",
+      "sha": "d76ed9b3f512decbb68f6641db86230aa595996e"
+    },
+    {
+      "repository": "android_hardware_mediatek",
+      "path": "hardware/mediatek",
+      "sha": "32bd412433ef0d58c3484769d9789987407627fc"
+    },
+    {
+      "repository": "android_hardware_xiaomi",
+      "path": "hardware/xiaomi",
+      "sha": "d7f3ba632de9bd0a8c1b33cf110a951f4ccbbd02"
+    },
+    {
+      "repository": "android_kernel_xiaomi_mt6768",
+      "path": "kernel/xiaomi/mt6768",
+      "sha": "df719f4a9bbe3b5e87479fe79b47c66da2ffa44a"
+    }
+  ]
+}
