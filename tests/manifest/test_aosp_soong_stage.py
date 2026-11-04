@@ -50,7 +50,7 @@ class AuraSoongStageTests(unittest.TestCase):
     def test_test_only_modules_cannot_register_production_packages(self):
         path = self.root / "platform/aura/android-adapter/probe/Android.bp"
         path.write_text(path.read_text() +
-            '\n// PRODUCT_PACKAGES += AuraBinderProbeHost\n')
+            '\nPRODUCT_PACKAGES += AuraBinderProbeHost\n')
         self.assertTrue(preflight.inspect(self.root))
 
     def test_instrumentation_cannot_target_different_host(self):
