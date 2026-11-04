@@ -67,7 +67,11 @@ def inspect(root: Path) -> list[str]:
             if name in observed_modules:
                 issues.append(f"Duplicate global Soong module: {name}")
             observed_modules.add(name)
-        executable = re.sub(r'(?m)^\\s*//[^\\n]*
+        executable = chr(10).join(
+            line for line in source.splitlines()
+            if not line.lstrip().startswith("//")
+        )
+        if any(token in executable for token in BLOCKED_BUILD_TOKENS):
             issues.append(f"Production/privileged module wiring in test-only Blueprint: {relative}")
     probe = root / "platform/aura/android-adapter/probe/Android.bp"
     if probe.is_file() and not probe.is_symlink():
