@@ -28,6 +28,8 @@ for app in repo sha256sum adb apksigner git python3; do
   command -v "$app" >/dev/null || { echo "FAIL: missing $app" >&2; exit 1; }
 done
 bash "$source_repo/tools/scripts/aosp-host-readiness.sh" "$aosp"
+# Validate core AURA Soong source graph before staging any build inputs.
+python3 "$source_repo/tools/scripts/verify-aosp-soong-stage.py" "$source_repo"
 
 # The evidence output must be absent or empty, never pre-populated with fake results.
 mkdir -p "$AURA_EVIDENCE_DIR"
@@ -64,6 +66,8 @@ stage="$aosp/vendor/aura/verification"
 }
 mkdir -p "$stage"
 cp -a "$source_repo/platform" "$stage/platform"
+# Confirm AOSP's isolated staging folder contains the exact expected modules.
+python3 "$source_repo/tools/scripts/verify-aosp-soong-stage.py" "$stage"
 echo 'AURA Soong test-only modules staged; no SystemServer or PRODUCT_PACKAGES changes.'
 [[ "${AURA_JOBS:-8}" =~ ^[1-9][0-9]?$ ]] || { echo 'FAIL: jobs must be 1-99' >&2; exit 2; }
 jobs="${AURA_JOBS:-8}"
